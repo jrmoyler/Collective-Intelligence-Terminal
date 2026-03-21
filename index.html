@@ -179,7 +179,7 @@ body{background:#050A18;overflow:hidden;font-family:'Space Mono',monospace;color
   .brand{font-size:8px;}
 }
 
-<style>
+/* Keep a single style block: this section extends base UI styles. */
 /* ═══ CIT v4.2 MARKET INTELLIGENCE LAYER ══════════════════════════════ */
 :root {
   --cit-bg:      #020409;
@@ -4521,6 +4521,33 @@ window.toggleBacktest = toggleBacktest;
 //  Gamma Markets API supports closed=true, resolved=true
 //  Returns contracts where the outcome is known (resolutionSource set)
 // ─────────────────────────────────────────────────────────────────────
+function inferBacktestDomain(question = '') {
+  const q = String(question || '').toLowerCase();
+  if (!q) return 'polymarket';
+
+  // Fix: DOMAIN selector in the backtest UI was ignored because every
+  // contract was hard-coded as "polymarket". We infer category from question
+  // text so domain filtering actually works without removing any contracts.
+  const financialKeywords = [
+    'stock', 'stocks', 'spy', 's&p', 'nasdaq', 'dow', 'market',
+    'bitcoin', 'btc', 'ethereum', 'eth', 'crypto', 'fed', 'interest rate',
+    'inflation', 'recession', 'gold', 'oil', 'treasury', 'bond'
+  ];
+  const sportsKeywords = [
+    'super bowl', 'nba', 'nfl', 'mlb', 'nhl', 'wnba', 'championship',
+    'world cup', 'olympic', 'pga', 'ufc', 'match', 'tournament', 'goal'
+  ];
+  const politicsKeywords = [
+    'election', 'senate', 'house', 'president', 'prime minister',
+    'parliament', 'congress', 'government', 'vote', 'campaign', 'policy'
+  ];
+
+  if (financialKeywords.some(k => q.includes(k))) return 'financial';
+  if (sportsKeywords.some(k => q.includes(k))) return 'sports';
+  if (politicsKeywords.some(k => q.includes(k))) return 'politics';
+  return 'polymarket';
+}
+
 async function fetchResolvedContracts(limit = 10, domainFilter = 'all') {
   const url = `https://gamma-api.polymarket.com/markets?closed=true&limit=${Math.min(limit * 3, 60)}&order=volume24hr:desc&ascending=false`;
   try {
@@ -4562,11 +4589,12 @@ async function fetchResolvedContracts(limit = 10, domainFilter = 'all') {
           marketProb,   // cents (0-100) — estimated market consensus price
           volume:      Math.round(m.volume24hr || 0),
           endDate:     m.endDate || null,
-          domain:      'polymarket',
+          domain:      inferBacktestDomain(m.question),
           tokenId:     (() => { try { return JSON.parse(m.clobTokenIds||'[]')[0]; } catch { return null; } })(),
         };
       })
-      .filter(m => m.outcome !== 'AMBIGUOUS');
+      .filter(m => m.outcome !== 'AMBIGUOUS')
+      .filter(m => domainFilter === 'all' ? true : m.domain === domainFilter);
   } catch(e) {
     console.warn('[Backtest:fetchResolved]', e);
     return [];

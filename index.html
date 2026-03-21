@@ -7285,7 +7285,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { FilmPass } from 'three/examples/jsm/postprocessing/FilmPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
-import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x03060c);
@@ -7402,7 +7402,7 @@ const materials = {
   shell: new THREE.MeshStandardMaterial({ color: 0x07101a, roughness: 0.78, metalness: 0.22 }),
   glassColumn: new THREE.MeshPhysicalMaterial({
     color: 0x6d7cff, roughness: 0, metalness: 0.05, transmission: 0.9,
-    thickness: 0.5, ior: 1.5, transparent: true, opacity: 0.82
+    ior: 1.5, transparent: true, opacity: 0.82
   }),
   edgeStrip: (color, intensity = 1) => new THREE.MeshStandardMaterial({
     color, emissive: color, emissiveIntensity: intensity, roughness: 0.2, metalness: 0.8

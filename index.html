@@ -1409,7 +1409,8 @@ function levenshteinSim(a, b) {
   if (a === b) return 1;
   const s = a.length, t = b.length;
   if (Math.abs(s - t) / Math.max(s, t) > 0.3) return 0; // early exit if too different
-  const dp = Array.from({length:s+1},(_,i)=>Array.from({length:t+1},(_,j)=>i||j?Infinity:0));
+  // Fix: boundary cells must be dp[i][0]=i and dp[0][j]=j (not Infinity)
+  const dp = Array.from({length:s+1},(_,i)=>Array.from({length:t+1},(_,j)=>i===0?j:j===0?i:0));
   for (let i=1;i<=s;i++) for (let j=1;j<=t;j++) dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
   return 1 - dp[s][t] / Math.max(s, t);
 }
@@ -2074,8 +2075,6 @@ const ASSET_CORRELATIONS = {
   geography: { YES:{equities:[{sym:'SPY',dir:1,weight:0.3}],reason:'Geopolitical shifts: case-by-case'}, NO:{equities:[{sym:'GLD',dir:1,weight:0.5}],reason:'Geopolitical uncertainty: gold premium'} },
   world:     { YES:{equities:[{sym:'SPY',dir:1,weight:0.5}],crypto:[{sym:'BTC',dir:-1,weight:0.4}],forex:[{pair:'DXY',dir:1,weight:0.4}],reason:'Positive world events: risk-on; crisis drives gold+bonds+DXY'}, NO:{equities:[{sym:'GLD',dir:1,weight:0.8},{sym:'TLT',dir:1,weight:0.6},{sym:'SPY',dir:-1,weight:0.5}],reason:'Crisis events: gold safe-haven, flight to treasuries, equities fall'} },
   political: { YES:{equities:[{sym:'SPY',dir:1,weight:0.6},{sym:'XLF',dir:1,weight:0.5}],reason:'Policy clarity: markets rally on certainty; sector rotation to beneficiaries'}, NO:{equities:[{sym:'GLD',dir:1,weight:0.6},{sym:'SPY',dir:-1,weight:0.4}],reason:'Political risk premium: gold premium, defensive rotation, vol spike'} },
-  world:     { YES:{equities:[{sym:'SPY',dir:1,weight:0.5}],crypto:[{sym:'BTC',dir:-1,weight:0.4}],reason:'Positive world events: mild risk-on; crisis = gold+bonds'}, NO:{equities:[{sym:'GLD',dir:1,weight:0.7},{sym:'TLT',dir:1,weight:0.6}],reason:'Crisis events drive safe-haven flows into gold and bonds'} },
-  political: { YES:{equities:[{sym:'SPY',dir:1,weight:0.6},{sym:'XLF',dir:1,weight:0.5}],reason:'Policy clarity: equities rally on regulatory certainty'}, NO:{equities:[{sym:'GLD',dir:1,weight:0.6},{sym:'SPY',dir:-1,weight:0.4}],reason:'Political risk premium: gold up, equities rotate defensive'} },
   philosophy:{ YES:{equities:[],reason:'No direct asset correlation'}, NO:{equities:[],reason:''} },
   physics:   { YES:{equities:[{sym:'XLK',dir:1,weight:0.6}],reason:'Physics breakthroughs (fusion etc): energy/tech impact'}, NO:{equities:[],reason:''} },
   oceanography:{ YES:{equities:[{sym:'XLP',dir:1,weight:0.4}],reason:'Ocean/climate: insurance/infrastructure play'}, NO:{equities:[],reason:''} },

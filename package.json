@@ -1,0 +1,14 @@
+{
+  "name": "collective-intelligence-terminal",
+  "version": "7.0.0",
+  "description": "Single-file prediction market and market intelligence terminal",
+  "private": true,
+  "scripts": {
+    "test": "jest --verbose --forceExit",
+    "test:coverage": "jest --verbose --coverage --forceExit"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

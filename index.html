@@ -8087,18 +8087,6 @@ renderer.domElement.addEventListener('click', e => {
   const hit = raycaster.intersectObjects(hoverables, false)[0];
   if (!hit) return;
   const agent = agentById.get(hit.object.userData.agentId);
-
-renderer.domElement.addEventListener('pointermove', e => {
-  mouse.x = (e.clientX / innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
-});
-renderer.domElement.addEventListener('pointerdown', () => { userInteractingUntil = performance.now() + 5000; });
-renderer.domElement.addEventListener('dblclick', clearFocus);
-renderer.domElement.addEventListener('click', () => {
-  raycaster.setFromCamera(mouse, camera);
-  const hit = raycaster.intersectObjects(hoverables, false)[0];
-  if (!hit) return;
-  const agent = window.agents.find(a => a.id === hit.object.userData.agentId);
   if (agent) focusAgent(agent);
 });
 

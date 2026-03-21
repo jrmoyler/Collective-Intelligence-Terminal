@@ -8165,7 +8165,6 @@ function updateBurstParticles(delta) {
     const pos = tmpVec3.copy(p.start).multiplyScalar(omt * omt)
       .add(tmpVec3B.copy(p.control).multiplyScalar(2 * omt * t))
       .add(tmpVec3C.copy(p.end).multiplyScalar(t * t));
-      .add(new THREE.Vector3().copy(p.end).multiplyScalar(t * t));
     pos.x += Math.sin(t * 12 + p.offset) * 0.08;
     pos.z += Math.cos(t * 12 + p.offset) * 0.08;
     burstPositions[index * 3] = pos.x;

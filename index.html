@@ -7364,6 +7364,7 @@ const tempObject = new THREE.Object3D();
 const tmpVec3 = new THREE.Vector3();
 const tmpVec3B = new THREE.Vector3();
 const tmpVec3C = new THREE.Vector3();
+const tmpColor = new THREE.Color();
 
 function makeGridTexture(size = 256) {
   const canvas = document.createElement('canvas');
@@ -7620,6 +7621,62 @@ function createDeskInstances(agentPlacements) {
     monitorMesh.setMatrixAt(index, tempObject.matrix);
     monitorMesh.setColorAt(index, new THREE.Color(placement.baseColor));
   });
+  });
+  const corners = [
+    [-BUILDING.width / 2, y + 0.2, -BUILDING.depth / 2],
+    [BUILDING.width / 2, y + 0.2, -BUILDING.depth / 2],
+    [-BUILDING.width / 2, y + 0.2, BUILDING.depth / 2],
+    [BUILDING.width / 2, y + 0.2, BUILDING.depth / 2]
+  ];
+  corners.forEach(([x, ly, z]) => {
+    const light = new THREE.PointLight(color, 0.3, 6);
+    light.position.set(x, ly, z);
+    borderGroup.add(light);
+  });
+  scene.add(borderGroup);
+}
+
+const centralColumn = new THREE.Group();
+const centralCore = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, BUILDING.floorHeight * BUILDING.floors + 1.2, 24, 1, true), materials.glassColumn);
+centralCore.position.y = BUILDING.floorHeight * BUILDING.floors * 0.5;
+centralCore.castShadow = true;
+centralCore.receiveShadow = true;
+centralColumn.add(centralCore);
+const centralLight = new THREE.PointLight(0xa855f7, 1.8, 18);
+centralLight.position.set(0, BUILDING.floorHeight * 1.4, 0);
+centralColumn.add(centralLight);
+const coreRing = new THREE.Mesh(
+  new THREE.TorusGeometry(1.6, 0.08, 12, 80),
+  new THREE.MeshPhysicalMaterial({ color: 0x00d9b5, emissive: 0x00d9b5, emissiveIntensity: 2.2, roughness: 0.12, metalness: 0.85, clearcoat: 1 })
+);
+coreRing.rotation.x = Math.PI / 2;
+coreRing.position.y = BUILDING.floorHeight * 1.5;
+centralColumn.add(coreRing);
+scene.add(centralColumn);
+
+function createDeskInstances(agentPlacements) {
+  const deskGeo = new THREE.BoxGeometry(0.6, 0.04, 0.4);
+  const monitorGeo = new THREE.BoxGeometry(0.4, 0.3, 0.02);
+  const deskMesh = new THREE.InstancedMesh(deskGeo, materials.desk, agentPlacements.length);
+  deskMesh.castShadow = true;
+  deskMesh.receiveShadow = true;
+  const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x14182b, roughness: 0.24, metalness: 0.72, emissiveIntensity: 1.5 });
+  const monitorMesh = new THREE.InstancedMesh(monitorGeo, monitorMaterial, agentPlacements.length);
+  monitorMesh.castShadow = true;
+
+  agentPlacements.forEach((placement, index) => {
+    tempObject.position.set(placement.x, placement.y + 0.3, placement.z + 0.12);
+    tempObject.rotation.set(0, placement.facing, 0);
+    tempObject.scale.set(1, 1, 1);
+    tempObject.updateMatrix();
+    deskMesh.setMatrixAt(index, tempObject.matrix);
+
+    tempObject.position.set(placement.x, placement.y + 0.47, placement.z - 0.04);
+    tempObject.rotation.set(0, placement.facing, 0);
+    tempObject.updateMatrix();
+    monitorMesh.setMatrixAt(index, tempObject.matrix);
+    monitorMesh.setColorAt(index, new THREE.Color(placement.baseColor));
+  });
 
   scene.add(deskMesh, monitorMesh);
 }
@@ -7628,6 +7685,8 @@ function createLabelCanvas(agent, expanded = false) {
   const canvas = document.createElement('canvas');
   canvas.width = expanded ? 256 : 128;
   canvas.height = expanded ? 128 : 64;
+  canvas.width = expanded ? 320 : 192;
+  canvas.height = expanded ? 164 : 92;
   const ctx = canvas.getContext('2d');
   const stateKey = agent.displayState || 'NEUTRAL';
   const stateColor = `#${STATE_COLORS[stateKey].getHexString()}`;
@@ -7655,6 +7714,14 @@ function createLabelCanvas(agent, expanded = false) {
   ctx.fillStyle = stateColor;
   ctx.beginPath();
   ctx.arc(canvas.width - 20, 20, expanded ? 8 : 6, 0, Math.PI * 2);
+  ctx.font = expanded ? 'bold 32px Space Mono, monospace' : 'bold 24px Space Mono, monospace';
+  ctx.fillText(agent.id, 20, expanded ? 42 : 32);
+  ctx.fillStyle = '#9ab2d1';
+  ctx.font = expanded ? '18px Space Mono, monospace' : '16px Space Mono, monospace';
+  ctx.fillText(TYPE_ABBR[agent.type], 20, expanded ? 68 : 56);
+  ctx.fillStyle = stateColor;
+  ctx.beginPath();
+  ctx.arc(canvas.width - 26, 26, 10, 0, Math.PI * 2);
   ctx.fill();
 
   if (expanded) {
@@ -7663,6 +7730,10 @@ function createLabelCanvas(agent, expanded = false) {
     ctx.fillText(`STATE  ${stateKey}`, 16, 78);
     ctx.fillText(`YES%   ${String(agent.yesPct ?? 50).padStart(2, '0')}`, 16, 100);
     ctx.fillText(`NO%    ${String(agent.noPct ?? 50).padStart(2, '0')}`, 16, 118);
+    ctx.font = '16px Space Mono, monospace';
+    ctx.fillText(`STATE  ${stateKey}`, 20, 98);
+    ctx.fillText(`YES%   ${String(agent.yesPct ?? 50).padStart(2, '0')}`, 20, 124);
+    ctx.fillText(`NO%    ${String(agent.noPct ?? 50).padStart(2, '0')}`, 20, 148);
   }
   return canvas;
 }
@@ -7726,6 +7797,7 @@ function createAgent(agentDef) {
   group.add(torsoPivot);
 
   const torso = new THREE.Mesh(AGENT_GEOMETRIES.torso, torsoMat);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.06, 0.28, 12), torsoMat);
   torso.castShadow = true;
   torso.receiveShadow = true;
   torsoPivot.add(torso);
@@ -7735,6 +7807,11 @@ function createAgent(agentDef) {
   torsoPivot.add(chestPanel);
 
   const neck = new THREE.Mesh(AGENT_GEOMETRIES.neck, jointMat);
+  const chestPanel = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.12), panelMat);
+  chestPanel.position.set(0, 0.02, 0.092);
+  torsoPivot.add(chestPanel);
+
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.06, 10), jointMat);
   neck.position.y = 0.17;
   torsoPivot.add(neck);
 
@@ -7743,11 +7820,13 @@ function createAgent(agentDef) {
   torsoPivot.add(headPivot);
 
   const head = new THREE.Mesh(AGENT_GEOMETRIES.head, headMat);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 18, 16), headMat);
   head.castShadow = true;
   head.receiveShadow = true;
   headPivot.add(head);
 
   const visor = new THREE.Mesh(AGENT_GEOMETRIES.visor, visorMat);
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.045), visorMat);
   visor.position.set(0, -0.005, 0.065);
   headPivot.add(visor);
 
@@ -7758,6 +7837,11 @@ function createAgent(agentDef) {
     torsoPivot.add(shoulder);
 
     const upperArm = new THREE.Mesh(AGENT_GEOMETRIES.upperArm, jointMat);
+    const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.028, 14, 12), jointMat);
+    shoulder.position.set(side * 0.105, 0.1, 0);
+    torsoPivot.add(shoulder);
+
+    const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.017, 0.14, 10), jointMat);
     upperArm.position.set(side * 0.16, 0.04, 0);
     upperArm.rotation.z = side * (Math.PI / 2 - 0.22);
     torsoPivot.add(upperArm);
@@ -7767,6 +7851,11 @@ function createAgent(agentDef) {
     torsoPivot.add(elbow);
 
     const lowerArm = new THREE.Mesh(AGENT_GEOMETRIES.lowerArm, jointMat);
+    const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 10), jointMat);
+    elbow.position.set(side * 0.22, -0.02, 0);
+    torsoPivot.add(elbow);
+
+    const lowerArm = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.015, 0.12, 10), jointMat);
     lowerArm.position.set(side * 0.265, -0.08, 0);
     lowerArm.rotation.z = side * (Math.PI / 2 - 0.12);
     torsoPivot.add(lowerArm);
@@ -7792,6 +7881,27 @@ function createAgent(agentDef) {
     torsoPivot.add(shin);
 
     const foot = new THREE.Mesh(AGENT_GEOMETRIES.foot, jointMat);
+    const wrist = new THREE.Mesh(new THREE.SphereGeometry(0.017, 12, 10), jointMat);
+    wrist.position.set(side * 0.31, -0.13, 0);
+    torsoPivot.add(wrist);
+
+    const hip = new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 10), jointMat);
+    hip.position.set(side * 0.05, -0.15, 0);
+    torsoPivot.add(hip);
+
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.16, 10), jointMat);
+    thigh.position.set(side * 0.05, -0.24, 0);
+    torsoPivot.add(thigh);
+
+    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 10), jointMat);
+    knee.position.set(side * 0.05, -0.33, 0);
+    torsoPivot.add(knee);
+
+    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.018, 0.15, 10), jointMat);
+    shin.position.set(side * 0.05, -0.42, 0);
+    torsoPivot.add(shin);
+
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.025, 0.09), jointMat);
     foot.position.set(side * 0.05, -0.51, 0.02);
     torsoPivot.add(foot);
 
@@ -7799,6 +7909,7 @@ function createAgent(agentDef) {
   });
 
   const statusRing = new THREE.Mesh(AGENT_GEOMETRIES.statusRing, ringMat);
+  const statusRing = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.022, 12, 36), ringMat);
   statusRing.rotation.x = Math.PI / 2;
   statusRing.position.y = -0.02;
   group.add(statusRing);
@@ -7818,6 +7929,13 @@ function createAgent(agentDef) {
   simpleGroup.add(simpleHead, simplePanel);
 
   const clickTarget = new THREE.Mesh(AGENT_GEOMETRIES.clickTarget, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }));
+  const simpleHead = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), headMat.clone());
+  simpleHead.position.y = 0.58;
+  const simplePanel = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.14), panelMat.clone());
+  simplePanel.position.set(0, 0.36, 0.09);
+  simpleGroup.add(simpleHead, simplePanel);
+
+  const clickTarget = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.8, 8), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }));
   clickTarget.position.y = 0.32;
   clickTarget.userData.agentId = agentDef.id;
   group.add(clickTarget);
@@ -7999,6 +8117,13 @@ window.setAgentState = function setAgentState(agent, state) {
   agent.simplePanelMat.color.copy(baseColor);
   agent.simplePanelMat.emissive.copy(activeColor);
   agent.simplePanelMat.emissiveIntensity = agent.displayState === 'NEUTRAL' ? 3.1 : 4.1;
+  agent.panelMat.emissive.copy(agent.displayState === 'NEUTRAL' ? baseColor : stateColor);
+  agent.ringMat.emissive.copy(agent.displayState === 'NEUTRAL' ? baseColor : stateColor);
+  agent.panelMat.color.copy(baseColor);
+  agent.ringMat.color.copy(agent.displayState === 'NEUTRAL' ? baseColor : stateColor);
+  agent.ringMat.emissiveIntensity = agent.displayState === 'NEUTRAL' ? 2.0 : 3.5;
+  agent.panelMat.emissiveIntensity = agent.displayState === 'NEUTRAL' ? 3.5 : 4.4;
+  agent.visorMat.emissive.copy(agent.displayState === 'NEUTRAL' ? baseColor : stateColor);
   agent.glowIntensityTarget = agent.displayState === 'YES' || agent.displayState === 'NO' ? 1.2 : 0.4;
   agent.glowColorTarget.copy(agent.displayState === 'YES' || agent.displayState === 'NO' ? stateColor : baseColor);
   agent.ringVelocityTarget = agent.displayState === 'YES' ? 3.8 : agent.displayState === 'NO' ? -3.8 : 0.35;
@@ -8067,6 +8192,18 @@ renderer.domElement.addEventListener('click', e => {
   const hit = raycaster.intersectObjects(hoverables, false)[0];
   if (!hit) return;
   const agent = agentById.get(hit.object.userData.agentId);
+
+renderer.domElement.addEventListener('pointermove', e => {
+  mouse.x = (e.clientX / innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / innerHeight) * 2 + 1;
+});
+renderer.domElement.addEventListener('pointerdown', () => { userInteractingUntil = performance.now() + 5000; });
+renderer.domElement.addEventListener('dblclick', clearFocus);
+renderer.domElement.addEventListener('click', () => {
+  raycaster.setFromCamera(mouse, camera);
+  const hit = raycaster.intersectObjects(hoverables, false)[0];
+  if (!hit) return;
+  const agent = window.agents.find(a => a.id === hit.object.userData.agentId);
   if (agent) focusAgent(agent);
 });
 
@@ -8079,6 +8216,7 @@ function updateHoverState() {
   raycaster.setFromCamera(mouse, camera);
   const hit = raycaster.intersectObjects(hoverables, false)[0];
   const nextHover = hit ? agentById.get(hit.object.userData.agentId) : null;
+  const nextHover = hit ? window.agents.find(a => a.id === hit.object.userData.agentId) : null;
   if (nextHover !== hoveredAgent) {
     if (hoveredAgent) {
       hoveredAgent.hovered = false;
@@ -8133,6 +8271,7 @@ function updateBurstParticles(delta) {
     const pos = tmpVec3.copy(p.start).multiplyScalar(omt * omt)
       .add(tmpVec3B.copy(p.control).multiplyScalar(2 * omt * t))
       .add(tmpVec3C.copy(p.end).multiplyScalar(t * t));
+      .add(new THREE.Vector3().copy(p.end).multiplyScalar(t * t));
     pos.x += Math.sin(t * 12 + p.offset) * 0.08;
     pos.z += Math.cos(t * 12 + p.offset) * 0.08;
     burstPositions[index * 3] = pos.x;
@@ -8182,6 +8321,7 @@ function updateAgent(agent, time, delta) {
     agent.torsoPivot.rotation.z *= 0.92;
   }
 
+  const scaleTarget = agent.hovered ? 0.31 : 0.28;
   if (agent.labelSprite) {
     agent.labelSprite.scale.lerp(new THREE.Vector3(agent.hovered ? 0.46 : 0.28, agent.hovered ? 0.25 : 0.14, 1), Math.min(1, delta * 8));
     agent.labelSprite.material.opacity = THREE.MathUtils.lerp(agent.labelSprite.material.opacity ?? 1, agent.hovered ? 1 : 0.88, Math.min(1, delta * 6));

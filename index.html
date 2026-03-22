@@ -1142,7 +1142,7 @@ body{background:#050A18;overflow:hidden;font-family:'Space Mono',monospace;color
 <div id="ds"><div id="dsl">COLLECTIVE FEED</div><div id="dss"><div id="dsi"><span class="ti"><span class="tl">INIT</span><span class="tv n">LOADING...</span></span></div></div></div>
 
 <div id="ad">
-  <div class="sheet-handle" onclick="document.getElementById('ad').classList.remove('v')"></div><div id="adh"><span id="adt">ANALYSIS</span><div style="display:flex;gap:6px;align-items:center"><button id="nexus-trigger" class="nexus-export-btn" style="display:none" onclick="">◈ EXPORT</button><button id="parlay-trigger" class="nexus-export-btn" style="display:none;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--cit-amber)" onclick="addCurrentSimToParlay()">+ PARLAY</button><button id="adc" onclick="document.getElementById('ad').classList.remove('v')">✕</button></div></div>
+  <div class="sheet-handle" onclick="document.getElementById('ad').classList.remove('v')"></div><div id="adh"><span id="adt">ANALYSIS</span><div style="display:flex;gap:6px;align-items:center"><button id="nexus-trigger" class="nexus-export-btn" style="display:none">◈ EXPORT</button><button id="parlay-trigger" class="nexus-export-btn" style="display:none;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--cit-amber)">+ PARLAY</button><button id="adc" onclick="document.getElementById('ad').classList.remove('v')">✕</button></div></div>
   <div id="adb"><div style="display:flex;align-items:center;gap:7px;color:#8B9BAE;font-size:9px;padding:8px 0" id="thinking"><span>ANALYZING</span><span class="th"><span>.</span><span>.</span><span>.</span></span></div><div id="ac"></div></div>
 </div>
 
@@ -1773,7 +1773,7 @@ window.selectPortfolioContract=selectPortfolioContract;
 // ═══════════════════════════════════════════════════════════════════════
 //  UPGRADE 2: POLYMARKET EXECUTION LAYER
 // ═══════════════════════════════════════════════════════════════════════
-function toggleExecPanel(){const p=document.getElementById('exec-panel'),b=document.getElementById('exec-toggle');if(!p)return;const open=p.classList.toggle('open');b.textContent=open?'✕ EXECUTION':'◈ EXECUTION';if(open&&citMarketData?.ms)renderExecPanel(citMarketData.ms,polyState);}
+function toggleExecPanel(){const p=document.getElementById('exec-panel'),b=document.getElementById('exec-toggle');if(!p)return;const open=p.classList.toggle('open');if(b)b.textContent=open?'✕ EXECUTION':'◈ EXECUTION';if(open&&citMarketData?.ms)renderExecPanel(citMarketData.ms,polyState);}
 window.toggleExecPanel=toggleExecPanel;
 
 function computeExecutionSignal(ms,ps,delibSignal){
@@ -3019,8 +3019,6 @@ const DOMAIN_BIASES = {
   geography:    { retail:{bullBias:.44,momentum:.8, contrarian:1.2}, inst:{fadeBias:.55,confirmBias:.45}, dataWeights:{usgs:.8,nws:.7,nasa:.3,gbif:.6,espn:.2,crypto:.3,fred:.6,finnhub:.3} },
   world:        { retail:{bullBias:.50,momentum:1.0,contrarian:1.0}, inst:{fadeBias:.50,confirmBias:.50}, dataWeights:{usgs:.4,nws:.9,nasa:.3,gbif:.2,espn:.3,crypto:.5,fred:.8,finnhub:.5} },
   political:    { retail:{bullBias:.48,momentum:.9, contrarian:1.1}, inst:{fadeBias:.52,confirmBias:.48}, dataWeights:{usgs:.2,nws:.6,nasa:.2,gbif:.1,espn:.2,crypto:.3,fred:1.2,finnhub:.6} },
-  world:        { retail:{bullBias:.50,momentum:1.0,contrarian:1.0}, inst:{fadeBias:.50,confirmBias:.50}, dataWeights:{usgs:.4,nws:.6,nasa:.3,gbif:.2,espn:.3,crypto:.5,fred:.8,finnhub:.5} },
-  political:    { retail:{bullBias:.48,momentum:.9, contrarian:1.1}, inst:{fadeBias:.52,confirmBias:.48}, dataWeights:{usgs:.2,nws:.5,nasa:.2,gbif:.1,espn:.2,crypto:.3,fred:1.0,finnhub:.6} },
 };
 
 // ── Agent conviction memory — tracks domain experience per agent
@@ -4480,7 +4478,7 @@ function loadTradingKeys() {
 
 const _origBOOT = window.BOOT;
 window.BOOT = async function() {
-  await _origBOOT();
+  if (typeof _origBOOT === 'function') await _origBOOT();
   loadCitKeys();
   citInjectMarketPanel();
   // Fire market data fetch in parallel (don't block v1.0 boot)
@@ -4855,7 +4853,7 @@ function ensureBreadthSrcEl() {
 // Hook into BOOT to also load saved backtest history and ensure breadth el
 const _btBoot = window.BOOT;
 window.BOOT = async function() {
-  await _btBoot();
+  if (typeof _btBoot === 'function') await _btBoot();
   vaultLoad();          // load session vault
   loadBtHistory();
   initMobile();         // mobile optimization
@@ -7220,6 +7218,7 @@ async function fetchPoliticalSentiment() {
 }
 
 
+const _preBoot = window.BOOT;
 window.BOOT = async function(){
   step(1,'done'); step(2,'act'); await fetchPolymarket();
   step(2,'done'); step(3,'act'); await fetchUSGS();
@@ -7273,6 +7272,8 @@ window.BOOT = async function(){
   setInterval(fetchGDELT,        900000);
   setInterval(fetchReddit,       600000);
   setInterval(fetchGNews,        600000);
+  // Run chained initialization from upgrade script blocks (CIT keys, vault, backtest, mobile, etc.)
+  if (typeof _preBoot === 'function') await _preBoot();
 };
 </script>
 

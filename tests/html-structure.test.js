@@ -285,19 +285,35 @@ describe('Data Source Connectivity', () => {
 });
 
 describe('Duplicate Key Detection in ASSET_CORRELATIONS', () => {
+  // Extract only the ASSET_CORRELATIONS block to check for duplicate keys within it
+  function extractBlock(src, varName) {
+    const start = src.indexOf(`const ${varName} = {`);
+    if (start === -1) return '';
+    let depth = 0, i = src.indexOf('{', start);
+    for (; i < src.length; i++) {
+      if (src[i] === '{') depth++;
+      else if (src[i] === '}') { depth--; if (depth === 0) return src.slice(start, i + 1); }
+    }
+    return '';
+  }
+
   test('world key is defined (checking for duplicate key issue)', () => {
-    const worldMatches = html.match(/^\s*world:\s*\{/gm);
+    const block = extractBlock(html, 'ASSET_CORRELATIONS');
+    const worldMatches = block.match(/^\s*world:\s*\{/gm);
     if (worldMatches && worldMatches.length > 1) {
       console.warn(`WARNING: 'world' key is defined ${worldMatches.length} times in ASSET_CORRELATIONS — last definition wins`);
     }
+    expect(worldMatches && worldMatches.length > 1).toBe(false);
     expect(html).toContain("world:");
   });
 
   test('political key is defined (checking for duplicate key issue)', () => {
-    const politicalMatches = html.match(/^\s*political:\s*\{/gm);
+    const block = extractBlock(html, 'ASSET_CORRELATIONS');
+    const politicalMatches = block.match(/^\s*political:\s*\{/gm);
     if (politicalMatches && politicalMatches.length > 1) {
       console.warn(`WARNING: 'political' key is defined ${politicalMatches.length} times in ASSET_CORRELATIONS — last definition wins`);
     }
+    expect(politicalMatches && politicalMatches.length > 1).toBe(false);
     expect(html).toContain("political:");
   });
 });
